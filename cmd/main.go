@@ -27,7 +27,12 @@ func MainMenu(db *gorm.DB) {
 
 	fmt.Println("Select an option?\n 1 - Add transaction \n 2 - Check transactions \n 3 - Remove transaction\n 4 - Update transaction")
 
-	fmt.Scanln(&selection)
+	_, err := fmt.Scanln(&selection)
+
+	if err != nil {
+		utils.ClearScreen()
+		MainMenu(db)
+	}
 
 	switch selection {
 	case 1:
@@ -51,15 +56,24 @@ func AddTransaction(db *gorm.DB) {
 	var transactionValue float64
 
 	fmt.Print("Type the transaction name:")
-	fmt.Scanln(&transactionName)
 
-	if reflect.TypeOf(transactionName) != reflect.TypeOf(string("a")) {
+	_, err := fmt.Scanln(&transactionName)
+	if err != nil {
+		AddTransaction(db)
+	}
+
+	if reflect.TypeOf(transactionName) != reflect.TypeOf("a") {
 		fmt.Println("Invalid value!")
 		AddTransaction(db)
 	}
 
 	fmt.Print("Type the transaction value:")
-	fmt.Scanln(&transactionValue)
+
+	_, err = fmt.Scanln(&transactionValue)
+
+	if err != nil {
+		AddTransaction(db)
+	}
 
 	if reflect.TypeOf(transactionValue) != reflect.TypeOf(float64(0)) {
 		fmt.Println("Invalid value!!")
@@ -73,7 +87,13 @@ func AddTransaction(db *gorm.DB) {
 	fmt.Println("Transaction successfully created! ")
 
 	fmt.Println("Go back to the menu? \n 1 - Yes\n 2 - No")
-	fmt.Scanln(&selection)
+
+	_, err = fmt.Scanln(&selection)
+
+	if err != nil {
+		utils.ClearScreen()
+		MainMenu(db)
+	}
 
 	if selection == 1 {
 		utils.ClearScreen()
@@ -106,7 +126,13 @@ func AllTransactions(db *gorm.DB) {
 	fmt.Printf("Total expenses: %g\n", total)
 
 	fmt.Println("Go back to the menu? \n 1 - Yes\n 2 - No")
-	fmt.Scanln(&selection)
+
+	_, err := fmt.Scanln(&selection)
+
+	if err != nil {
+		utils.ClearScreen()
+		MainMenu(db)
+	}
 
 	if selection == 1 {
 		utils.ClearScreen()
@@ -124,13 +150,14 @@ func DeleteTransaction(db *gorm.DB) {
 	var transactionName string
 
 	fmt.Print("Type the transaction ID to be removed: ")
-	fmt.Scanln(&transactionName)
 
-	err := db.Delete(&structs.Transaction{}, transactionName)
+	_, err := fmt.Scanln(&transactionName)
 
 	if err != nil {
-		fmt.Errorf("error during delete")
+		DeleteTransaction(db)
 	}
+
+	db.Delete(&structs.Transaction{}, transactionName)
 
 	fmt.Println("Transaction successfully removed!")
 
@@ -142,21 +169,36 @@ func UpdateTransaction(db *gorm.DB) {
 	var transactionName string
 	var dbObject structs.Transaction
 	fmt.Print("Type the transaction ID to be updated: ")
-	fmt.Scanln(&transactionName)
 
-	err := db.First(&dbObject)
+	_, err := fmt.Scanln(&transactionName)
 
 	if err != nil {
-		fmt.Errorf("error during update")
+		UpdateTransaction(db)
+	}
+
+	db.First(&dbObject)
+
+	if err != nil {
+		_ = fmt.Errorf("error during update")
 	}
 
 	fmt.Println("Wich field you want to update? \n 1 - Transaction name\n 2 - Transaction value")
-	fmt.Scanln(&selection)
+
+	_, err = fmt.Scanln(&selection)
+
+	if err != nil {
+		UpdateTransaction(db)
+	}
 
 	if selection == 1 {
 		var newName string
 		fmt.Println("Type the new name: ")
-		fmt.Scanln(&newName)
+
+		_, err = fmt.Scanln(&newName)
+
+		if err != nil {
+			UpdateTransaction(db)
+		}
 
 		dbObject.TransactionName = newName
 		db.Save(&dbObject)
@@ -164,7 +206,13 @@ func UpdateTransaction(db *gorm.DB) {
 		fmt.Println("Transaction successfully updated!")
 
 		fmt.Println("Go back to the menu? \n 1 - Yes\n 2 - No")
-		fmt.Scanln(&selection)
+
+		_, err = fmt.Scanln(&selection)
+
+		if err != nil {
+			utils.ClearScreen()
+			MainMenu(db)
+		}
 
 		if selection == 1 {
 			utils.ClearScreen()
@@ -176,7 +224,12 @@ func UpdateTransaction(db *gorm.DB) {
 
 		var newValue float64
 		fmt.Println("Type the new value: ")
-		fmt.Scanln(&newValue)
+
+		_, err = fmt.Scanln(&newValue)
+
+		if err != nil {
+			UpdateTransaction(db)
+		}
 
 		dbObject.Value = newValue
 		db.Save(&dbObject)
@@ -184,7 +237,13 @@ func UpdateTransaction(db *gorm.DB) {
 		fmt.Println("Transaction successfully updated!")
 
 		fmt.Println("Go back to the menu? \n 1 - Yes\n 2 - No")
-		fmt.Scanln(&selection)
+
+		_, err = fmt.Scanln(&selection)
+
+		if err != nil {
+			utils.ClearScreen()
+			MainMenu(db)
+		}
 
 		if selection == 1 {
 			utils.ClearScreen()
