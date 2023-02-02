@@ -4,122 +4,196 @@ import (
 	"financial-tracker/structs"
 	"financial-tracker/utils"
 	"fmt"
+	"gorm.io/gorm"
 	"os"
 	"reflect"
 	"time"
 )
 
-var (
-	bd        []structs.Transaction
-	selection int
-)
+var selection int
 
 func main() {
-	MainMenu()
+
+	db, err := utils.ConnectDB()
+
+	if err != nil {
+		panic(err)
+	}
+
+	MainMenu(db)
 }
 
-func MainMenu() {
+func MainMenu(db *gorm.DB) {
 
-	fmt.Println("O que deseja fazer?\n 1 - Adicionar transação \n 2 - Ver transações \n 3 - Remover transação")
+	fmt.Println("Select an option?\n 1 - Add transaction \n 2 - Check transactions \n 3 - Remove transaction\n 4 - Update transaction")
 
 	fmt.Scanln(&selection)
 
 	switch selection {
 	case 1:
-		AddTransaction()
+		AddTransaction(db)
 	case 2:
-		AllTransactions()
+		AllTransactions(db)
 	case 3:
-		DeleteTransaction()
+		DeleteTransaction(db)
+	case 4:
+		UpdateTransaction(db)
+	default:
+		utils.ClearScreen()
+		MainMenu(db)
 	}
 
 }
 
-func AddTransaction() {
+func AddTransaction(db *gorm.DB) {
 
 	var transactionName string
 	var transactionValue float64
 
-	fmt.Print("Digite o nome da transação:")
+	fmt.Print("Type the transaction name:")
 	fmt.Scanln(&transactionName)
 
 	if reflect.TypeOf(transactionName) != reflect.TypeOf(string("a")) {
-		fmt.Println("Valor inválido!")
-		AddTransaction()
+		fmt.Println("Invalid value!")
+		AddTransaction(db)
 	}
 
-	fmt.Print("Digite o valor da transação:")
+	fmt.Print("Type the transaction value:")
 	fmt.Scanln(&transactionValue)
 
-	if reflect.TypeOf(&transactionValue) != reflect.TypeOf(float64(0)) || reflect.TypeOf(&transactionName) != reflect.TypeOf(int(0)) {
-		fmt.Println("Valor inválido!")
-		AddTransaction()
+	if reflect.TypeOf(transactionValue) != reflect.TypeOf(float64(0)) {
+		fmt.Println("Invalid value!!")
+		AddTransaction(db)
 	}
 
 	t := structs.NewTransaction(transactionValue, transactionName)
-	bd = append(bd, *t)
 
-	fmt.Println("Transferencia criada com sucesso! ")
+	db.Create(&t)
 
-	fmt.Println("Deseja voltar ao menu? \n 1 - Sim\n 2 - Não")
+	fmt.Println("Transaction successfully created! ")
+
+	fmt.Println("Go back to the menu? \n 1 - Yes\n 2 - No")
 	fmt.Scanln(&selection)
 
 	if selection == 1 {
 		utils.ClearScreen()
-		MainMenu()
+		MainMenu(db)
 	} else if selection == 2 {
 		os.Exit(1)
 	}
 
 	utils.ClearScreen()
-	MainMenu()
+	MainMenu(db)
 
 }
 
-func AllTransactions() {
+func AllTransactions(db *gorm.DB) {
 	total := 0.0
 
-	for _, j := range bd {
-		fmt.Println("---------------------------------------------------")
-		fmt.Println("Nome da transação -> ", j.GetTransactionName())
-		fmt.Printf("Valor da transação -> %g\n", j.GetValue())
-		fmt.Println("Data da transação -> ", j.GetTransactionDate().Format(time.RFC850))
-		fmt.Println("ID da Transação -> ", j.GetTransactionId())
-		fmt.Println("---------------------------------------------------")
-		total += j.GetValue()
-	}
-	fmt.Printf("Total de despesa: %g\n", total)
+	var objetos []structs.Transaction
 
-	fmt.Println("Deseja voltar ao menu? \n 1 - Sim\n 2 - Não")
+	db.Find(&objetos)
+
+	for _, j := range objetos {
+		fmt.Println("---------------------------------------------------")
+		fmt.Println("Transaction name -> ", j.TransactionName)
+		fmt.Printf("Transaction value -> %g\n", j.Value)
+		fmt.Println("Transaction Date -> ", j.TransactionDate.Format(time.RFC822))
+		fmt.Println("Transaction ID -> ", j.ID)
+		total += j.Value
+	}
+
+	fmt.Printf("Total expenses: %g\n", total)
+
+	fmt.Println("Go back to the menu? \n 1 - Yes\n 2 - No")
 	fmt.Scanln(&selection)
 
 	if selection == 1 {
 		utils.ClearScreen()
-		MainMenu()
+		MainMenu(db)
 	} else if selection == 2 {
 		os.Exit(1)
 	}
 
 	utils.ClearScreen()
-	MainMenu()
+	MainMenu(db)
 
 }
 
-func DeleteTransaction() {
+func DeleteTransaction(db *gorm.DB) {
 	var transactionName string
 
-	fmt.Print("Digite o nome da transação a ser removida: ")
+	fmt.Print("Type the transaction ID to be removed: ")
 	fmt.Scanln(&transactionName)
 
-	for i, j := range bd {
-		if j.GetTransactionName() == transactionName {
-			bd = append(bd[:i], bd[i+1:]...)
-			break
-		}
+	err := db.Delete(&structs.Transaction{}, transactionName)
+
+	if err != nil {
+		fmt.Errorf("error during delete")
 	}
 
-	fmt.Println("Transação removida com sucesso!")
+	fmt.Println("Transaction successfully removed!")
 
 	utils.ClearScreen()
-	MainMenu()
+	MainMenu(db)
+}
+
+func UpdateTransaction(db *gorm.DB) {
+	var transactionName string
+	var dbObject structs.Transaction
+	fmt.Print("Type the transaction ID to be updated: ")
+	fmt.Scanln(&transactionName)
+
+	err := db.First(&dbObject)
+
+	if err != nil {
+		fmt.Errorf("error during update")
+	}
+
+	fmt.Println("Wich field you want to update? \n 1 - Transaction name\n 2 - Transaction value")
+	fmt.Scanln(&selection)
+
+	if selection == 1 {
+		var newName string
+		fmt.Println("Type the new name: ")
+		fmt.Scanln(&newName)
+
+		dbObject.TransactionName = newName
+		db.Save(&dbObject)
+
+		fmt.Println("Transaction successfully updated!")
+
+		fmt.Println("Go back to the menu? \n 1 - Yes\n 2 - No")
+		fmt.Scanln(&selection)
+
+		if selection == 1 {
+			utils.ClearScreen()
+			MainMenu(db)
+		} else if selection == 2 {
+			os.Exit(1)
+		}
+	} else if selection == 2 {
+
+		var newValue float64
+		fmt.Println("Type the new value: ")
+		fmt.Scanln(&newValue)
+
+		dbObject.Value = newValue
+		db.Save(&dbObject)
+
+		fmt.Println("Transaction successfully updated!")
+
+		fmt.Println("Go back to the menu? \n 1 - Yes\n 2 - No")
+		fmt.Scanln(&selection)
+
+		if selection == 1 {
+			utils.ClearScreen()
+			MainMenu(db)
+		} else if selection == 2 {
+			os.Exit(1)
+		}
+	} else {
+		UpdateTransaction(db)
+	}
+
 }
